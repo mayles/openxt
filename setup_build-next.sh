@@ -66,7 +66,7 @@ OE_PARENT_DIR=$(dirname $OE_XENCLIENT_DIR)
 mkdir -p $REPOS || die "Could not create local build dir"
 
 # Pull down the OpenXT repos
-process_git_repo $REPOS/xenclient-oe $XENCLIENT_REPO $XENCLIENT_TAG
+process_git_repo $REPOS/meta-openxt $XENCLIENT_REPO $XENCLIENT_TAG
 process_git_repo $REPOS/bitbake $BITBAKE_REPO $BB_BRANCH
 process_git_repo $REPOS/openembedded-core $OE_CORE_REPO $OE_BRANCH
 process_git_repo $REPOS/meta-openembedded $META_OE_REPO $OE_BRANCH
