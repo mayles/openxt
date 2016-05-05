@@ -21,7 +21,6 @@ OUTPUT_DIR="$TOPDIR/build-output"
 CMD="$0"
 CMD_DIR=`dirname "$CMD"`
 NAME=""
-ENV=0
 VERBOSE=0
 SOURCE=0
 BUILD_USER="`whoami`"
@@ -35,79 +34,6 @@ export BUILD_UID
 
 source ${CMD_DIR}/common-config
 source ${CMD_DIR}/build_helpers.sh
-
-create_ramdisk()
-{
-        local path="$1"
-        local type="$2"
-
-        if [ $type -eq 0 ]; then
-                return
-        fi
-
-        mkdir -p "$path"
-        if [ $type -eq 1 ]; then
-                #tmpfs ramfs
-
-                local fstype="`df -T "$path" | tail -n1 | awk '{print $2}'`"
-
-                if [ "$fstype" != "tmpfs" ]; then
-                        echo "Create ramfs ($path)"
-                        sudo mount -t tmpfs -o size=20G tmpfs "$path"
-                fi
-        fi
-
-        if [ $type -eq 2 ]; then
-                #ext2 on ramdisk
-
-                local dev="`df -T "$path" | tail -n1 | awk '{print $1}'`"
-
-                if [ "$dev" != "/dev/ram0" ]; then
-
-                        echo "Create ram disk on ($path)"
-
-                        dev="/dev/ram0"
-
-                        sudo modprobe brd rd_size=$[20 * 1024 * 1024]
-                        sudo mke2fs -b 4096 "$dev"
-                        sudo tune2fs -m 0 -i 0 -c 0 "$dev"
-                        sudo mount "$dev" "$path"
-                        sudo chmod 1777 "$path"
-                fi
-        fi
-
-
-}
-
-do_make()
-{
-        local rule="$1"
-        local output="$2"
-
-        (
-        set +x
-         < /dev/null make $rule 2>&1 | \
-                while read l; do echo "$(date "+[%H:%M:%S.%N]"): $l"; done | tee "$output";
-        )
-}
-
-do_sim()
-{
-        local path="$1"
-        local dom0rootfs="$OUTPUT_DIR/$NAME/raw/dom0-rootfs.i686.ext3.gz"
-
-        mkdir -p "$path"
-        pushd "$path"
-
-        git_clone "xc-test" "$OPENXT_GIT_PROTOCOL://$OPENXT_GIT_MIRROR/xc-test.git" "$BRANCH" "$ALLOW_SWITCH_BRANCH_FAIL"
-
-        pushd "xc-test/xc-sim"
-
-        do_make "BUILDNO=${ID} ID=${ID} ROOTFS=${dom0rootfs} xc-sim" "build.log"
-
-        popd
-        popd
-}
 
 do_oe_log()
 {
@@ -237,7 +163,7 @@ EOF
 
                 if [ $SOURCE -eq 1 ]
                 then
-                    cat >> conf/local.conf <<EOF 
+                    cat >> conf/local.conf <<EOF
 
 XENCLIENT_BUILD_SRC_PACKAGES = "1"
 XENCLIENT_COLLECT_SRC_INFO = "1"
@@ -245,7 +171,7 @@ EOF
                 fi
                 if [ "x$FREEZE_URIS" = "xyes" ]
                 then
-                    cat >> conf/local.conf <<EOF 
+                    cat >> conf/local.conf <<EOF
 
 INHERIT += "freezer"
 EOF
@@ -259,7 +185,7 @@ EOF
         fi
 
         if [ $VERBOSE -eq 1 ]
-        then 
+        then
             OPTS="-v"
         else
             OPTS=""
@@ -286,23 +212,6 @@ EOF
     fi
 }
 
-do_oe_check_cpp()
-{
-        local path="$1"
-
-        pushd "$path"
-
-        cat <<- EOF > fish.cpp
-#include <stdio.h>
-int main(int argc, char *argv[]) { printf("fish\n"); }
-EOF
-
-        export MACHINE="xenclient-dom0"
-         build/cross/i686core2/bin/i686-angstrom-linux-gcc -c -o fish.o fish.cpp | do_oe_log
-        rm -rf fish.o fish.cpp
-        popd
-}
-
 do_oe()
 {
         local path="$1"
@@ -317,7 +226,7 @@ do_oe()
             # kill the cache
             rm -fr tmp-glibc/cache
         fi
-        if [ $VERBOSE -eq 1 ] 
+        if [ $VERBOSE -eq 1 ]
         then
             BBFLAGS="-v"
         else
@@ -367,40 +276,40 @@ do_oe_extra_pkgs()
 {
         local path="$1"
 
-        do_oe "$path" "xenclient-dom0" "task-xenclient-extra"
-        do_oe "$path" "xenclient-dom0" "package-index"
+        do_oe "$path" "openxt-dom0" "task-openxt-extra"
+        do_oe "$path" "openxt-dom0" "package-index"
 }
 
 do_oe_uivm_copy()
 {
         local path="$1"
-        do_oe_copy "$path" "uivm" "xenclient-uivm" "xenclient-uivm"
+        do_oe_copy "$path" "uivm" "openxt-uivm" "openxt-uivm"
 }
 
 do_oe_uivm()
 {
         local path="$1"
-        do_oe "$path" "xenclient-uivm" "xenclient-uivm-image"
+        do_oe "$path" "openxt-uivm" "openxt-uivm-image"
         do_oe_uivm_copy $path
 }
 
 do_oe_ndvm_copy()
 {
         local path="$1"
-        do_oe_copy "$path" "ndvm" "xenclient-ndvm" "xenclient-ndvm"
+        do_oe_copy "$path" "ndvm" "openxt-ndvm" "openxt-ndvm"
 }
 
 do_oe_ndvm()
 {
         local path="$1"
-        do_oe "$path" "xenclient-ndvm" "xenclient-ndvm-image"
+        do_oe "$path" "openxt-ndvm" "openxt-ndvm-image"
         do_oe_ndvm_copy $path
 }
 
 do_oe_nilfvm_copy()
 {
         local path="$1"
-        do_oe_copy "$path" "nilfvm" "xenclient-nilfvm" "xenclient-nilfvm"
+        do_oe_copy "$path" "nilfvm" "openxt-nilfvm" "openxt-nilfvm"
 
         local binaries="tmp-glibc/deploy/images"
         pushd "$path"
@@ -415,20 +324,20 @@ do_oe_nilfvm()
         echo This step is now useless, everything we need should be built as part of the tools.
         return
 
-        do_oe "$path" "xenclient-nilfvm" "xenclient-nilfvm-image"
+        do_oe "$path" "openxt-nilfvm" "openxt-nilfvm-image"
         do_oe_nilfvm_copy $path
 }
 
 do_oe_syncvm_copy()
 {
         local path="$1"
-        do_oe_copy "$path" "syncvm" "xenclient-syncvm" "xenclient-syncvm"
+        do_oe_copy "$path" "syncvm" "openxt-syncvm" "openxt-syncvm"
 }
 
 do_oe_syncvm()
 {
         local path="$1"
-        do_oe "$path" "xenclient-syncvm" "xenclient-syncvm-image"
+        do_oe "$path" "openxt-syncvm" "openxt-syncvm-image"
         do_oe_syncvm_copy $path
 }
 
@@ -445,33 +354,33 @@ do_oe_syncui_copy()
 do_oe_syncui()
 {
         local path="$1"
-        do_oe "$path" "xenclient-syncui" "sync-wui"
+        do_oe "$path" "openxt-syncui" "sync-wui"
         do_oe_syncui_copy "$path"
 }
 
 do_oe_dom0_copy()
 {
         local path="$1"
-        do_oe_copy "$path" "dom0" "xenclient-dom0" "xenclient-dom0"
+        do_oe_copy "$path" "dom0" "openxt-dom0" "openxt-dom0"
 }
 
 do_oe_dom0()
 {
         local path="$1"
-        do_oe "$path" "xenclient-dom0" "xenclient-dom0-image"
+        do_oe "$path" "openxt-dom0" "openxt-dom0-image"
         do_oe_dom0_copy $path
 }
 
 do_oe_sysroot_copy()
 {
         local path="$1"
-        do_oe_copy "$path" "sysroot" "xenclient-sysroot" "xenclient-dom0"
+        do_oe_copy "$path" "sysroot" "openxt-sysroot" "openxt-dom0"
 }
 
 do_oe_sysroot()
 {
         local path="$1"
-        do_oe "$path" "xenclient-dom0" "xenclient-sysroot-image"
+        do_oe "$path" "openxt-dom0" "openxt-sysroot-image"
         do_oe_sysroot_copy $path
 }
 
@@ -484,16 +393,16 @@ do_oe_installer_copy()
 
         mkdir -p "$OUTPUT_DIR/$NAME/raw/installer"
         # Copy installer
-        cp "$binaries/$machine/xenclient-installer-image-xenclient-dom0.cpio.gz" "$OUTPUT_DIR/$NAME/raw/installer/rootfs.i686.cpio.gz"
+        cp "$binaries/$machine/openxt-installer-image-openxt-dom0.cpio.gz" "$OUTPUT_DIR/$NAME/raw/installer/rootfs.i686.cpio.gz"
 
         # Copy extra installer files
         rm -rf "$OUTPUT_DIR/$NAME/raw/installer/iso"
-        cp -r "$binaries/$machine/xenclient-installer-image-xenclient-dom0/iso" \
+        cp -r "$binaries/$machine/openxt-installer-image-openxt-dom0/iso" \
                 "$OUTPUT_DIR/$NAME/raw/installer/iso"
         rm -rf "$OUTPUT_DIR/$NAME/raw/installer/netboot"
-        cp -r "$binaries/$machine/xenclient-installer-image-xenclient-dom0/netboot" \
+        cp -r "$binaries/$machine/openxt-installer-image-openxt-dom0/netboot" \
                 "$OUTPUT_DIR/$NAME/raw/installer/netboot"
-        cp "$binaries/$machine/bzImage-xenclient-dom0.bin" \
+        cp "$binaries/$machine/bzImage-openxt-dom0.bin" \
                 "$OUTPUT_DIR/$NAME/raw/installer/vmlinuz"
         cp "$binaries/$machine/xen.gz" \
                 "$OUTPUT_DIR/$NAME/raw/installer/xen.gz"
@@ -508,8 +417,8 @@ do_oe_installer()
 {
         local path="$1"
 
-        do_oe "$path" "xenclient-dom0" "xenclient-installer-image"
-        do_oe_installer_copy $path "xenclient-dom0"
+        do_oe "$path" "openxt-dom0" "openxt-installer-image"
+        do_oe_installer_copy $path "openxt-dom0"
 }
 
 do_oe_installer_part2_copy()
@@ -521,7 +430,7 @@ do_oe_installer_part2_copy()
 
         mkdir -p "$OUTPUT_DIR/$NAME/raw"
 
-        cp "$binaries/$machine/xenclient-installer-part2-image-xenclient-dom0.tar.bz2" "$OUTPUT_DIR/$NAME/raw/control.tar.bz2"
+        cp "$binaries/$machine/openxt-installer-part2-image-openxt-dom0.tar.bz2" "$OUTPUT_DIR/$NAME/raw/control.tar.bz2"
 
         popd
 }
@@ -530,8 +439,8 @@ do_oe_installer_part2()
 {
         local path="$1"
 
-        do_oe "$path" "xenclient-dom0" "xenclient-installer-part2-image"
-        do_oe_installer_part2_copy $path "xenclient-dom0"
+        do_oe "$path" "openxt-dom0" "openxt-installer-part2-image"
+        do_oe_installer_part2_copy $path "openxt-dom0"
 }
 
 do_oe_source_shrink()
@@ -559,7 +468,7 @@ do_oe_source_shrink()
 do_oe_source_copy()
 {
         local path="$1"
-        local rootfs="tmp-glibc/deploy/images/xenclient-source-image-xenclient-dom0.raw"
+        local rootfs="tmp-glibc/deploy/images/openxt-source-image-openxt-dom0.raw"
         pushd "$path" > /dev/null
 
         if [ "$SOURCE" -eq 0 ]
@@ -591,7 +500,7 @@ do_oe_source()
                 return
         fi
 
-        do_oe "$path" "xenclient-dom0" "xenclient-source-image"
+        do_oe "$path" "openxt-dom0" "openxt-source-image"
         do_oe_source_copy "$path"
 }
 
@@ -679,7 +588,7 @@ do_sync_cache()
     # FIXME: We explicitely exclude obselete folders from the list, as they still exist $SYNC_CACHE_OE
 #    OIFS=$IFS
 #    IFS=$'\n'
-#    for i in `find $SYNC_CACHE_OE/oe-archive/$ORIGIN_BRANCH -name Packages | grep -v xenclient-iovm | grep -v xenclient-vpnvm`; do
+#    for i in `find $SYNC_CACHE_OE/oe-archive/$ORIGIN_BRANCH -name Packages | grep -v openxt-iovm | grep -v openxt-vpnvm`; do
 #        folder=`dirname $i | sed "s|^$SYNC_CACHE_OE/oe-archive/||"`
 #        grep "^Filename: " $i | sed "s|^Filename: |$folder/|"
 #    done | rsync -ltvvzru --no-whole-file --files-from=- "$SYNC_CACHE_OE/oe-archive/" "$OE_BUILD_CACHE/oe-archive"
@@ -700,30 +609,6 @@ do_sync_cache_back()
 #        done | sudo rsync -ltvvzru --no-whole-file --files-from=- "$OE_BUILD_CACHE/oe-archive/" "$SYNC_CACHE_OE/oe-archive"
     fi
     set -o pipefail
-}
-
-do_cleanup()
-{
-        set +o pipefail
-        local path="$1"
-        local ramdisk="$path/oe"
-
-        # Kill old process that could use this directory
-        lsof | grep "$(pwd)/$path/" | awk '{print $2}' | while read pid; do
-                [ "$$" != "$pid" ] && kill -9 "$pid" || true
-        done
-
-        local type="`df -T "$ramdisk" | tail -n1 | awk '{print $2}'`"
-        local dev="`df -T "$ramdisk" | tail -n1 | awk '{print $1}'`"
-        if [ "$type" == "tmpfs" ]; then
-                sudo umount "$ramdisk"
-        elif [ "$dev" == "/dev/ram0" ]; then
-                sudo umount "$ramdisk"
-        fi
-        sudo rm -rf "$ramdisk"
-        mkdir -p "$ramdisk"
-        sudo rm -rf "$path"
-        set -o pipefail
 }
 
 list_manifest_suffixes()
@@ -895,7 +780,7 @@ do_updates()
         done
 }
 
-ACM_LIST="ivb_snb.acm gm45.acm duali.acm quadi.acm q35.acm q45q43.acm xeon56.acm xeone7.acm hsw.acm bdw.acm"
+ACM_LIST="ivb_snb.acm gm45.acm duali.acm quadi.acm q35.acm q45q43.acm xeon56.acm xeone7.acm hsw.acm bdw.acm skl.acm"
 
 extract_acms()
 {
@@ -1054,7 +939,7 @@ do_sdk()
         rm -rf ${workdir}
         mkdir -p ${workdir}/openxt-sdk/
 
-        echo "Clone xenclient/sdk.git"
+        echo "Clone openxt/sdk.git"
         git_clone "${workdir}/openxt-sdk" "$OPENXT_GIT_PROTOCOL://$OPENXT_GIT_MIRROR/sdk.git" "$BRANCH" "$ALLOW_SWITCH_BRANCH_FAIL"
 
         echo "Get the windows stuff"
@@ -1211,27 +1096,12 @@ do_source_iso()
 
         echo "  - copy sources"
         num_isos=$(copy_source_dirs "$iso" *)
-        
+
         echo "  - create iso"
         generate_source_iso "$iso" "$num_isos" "$info"
 
         popd > /dev/null
         echo
-}
-
-do_useexisting_xctools()
-{
-       local path="$1"
-
-       mkdir -p "$path"
-       pushd "$path"
-
-       local xct="$OUTPUT_DIR/$NAME/raw"
-       mkdir -p "$xct"
-      
-       echo "Copy windows zip files from $XC_TOOLS_OBJECTS_ORIGIN"
-       rsync -v "$XC_TOOLS_OBJECTS_ORIGIN/*.zip" "$xct"
-       popd
 }
 
 do_debian_xctools()
@@ -1259,7 +1129,7 @@ xctools_iso_from_zip()
 {
     local path="$1"
 #    local pkgdir="$OE_BUILD_CACHE/oe-archive/$ORIGIN_BRANCH/all"
-#    local linuxtools_ipk=$pkgdir/`grep "^Filename: xenclient-linuxtools_" $pkgdir/Packages | head -n1 | sed 's/^Filename: //'`
+#    local linuxtools_ipk=$pkgdir/`grep "^Filename: openxt-linuxtools_" $pkgdir/Packages | head -n1 | sed 's/^Filename: //'`
     local raw="$OUTPUT_DIR/$NAME/raw"
     local label="OpenXT-tools"
     local isodir="xc-tools-tmp/linux"
@@ -1290,11 +1160,11 @@ do_xctools_debian_repo()
     local d_output_dir="${OUTPUT_DIR}/${NAME}/xctools-debian-repo/debian"
 
     echo "Building Debian Service VM tools"
-    do_oe "${path}" "xenclient-nilfvm" "linux-xenclient-nilfvm"
-    do_oe "${path}" "xenclient-nilfvm" "deb-servicevm-tools"
+    do_oe "${path}" "openxt-nilfvm" "linux-openxt-nilfvm"
+    do_oe "${path}" "openxt-nilfvm" "deb-servicevm-tools"
 
     echo "Building XC Tools Debian/Ubuntu repository"
-    do_oe "${path}" "xenclient-dom0" "deb-xctools-image"
+    do_oe "${path}" "openxt-dom0" "deb-xctools-image"
 
     [[ -d "${dest_dir}/debian" ]] || die "do_xctools_debian_repo: debian repository does not exist"
     mkdir -p "${d_output_dir}"
@@ -1320,7 +1190,7 @@ do_xctools_win()
 
     mkdir -p "$path"
     pushd "$path"
-    
+
             rm -rf "xc-tools.iso"
             rsync -r -v --progress "${WIN_BUILD_OUTPUT}/" ./
 
@@ -1348,14 +1218,8 @@ do_xctools_linux() {
 }
 
 do_xctools() {
-
-        if [ ! "${XC_TOOLS_OBJECTS_ORIGIN}" ] ;
-        then
-                do_xctools_win "$1"
-        else
-               do_useexisting_xctools "$1"
-        fi
-       do_xctools_linux "$1"
+     do_xctools_win "$1"
+     do_xctools_linux "$1"
 }
 
 do_syncui()
@@ -1366,7 +1230,7 @@ do_syncui()
 
     if [ ! -r "${file}" ]; then
       echo "syncui: Not built, skipping"
-      return 0 
+      return 0
     fi
 
     echo "syncui:"
@@ -1428,14 +1292,6 @@ do_copy()
         rsync -ltzr --chmod=Fgo+r,Dgo+rx "$OUTPUT_DIR/$NAME" "$BUILD_RSYNC_DESTINATION/$ORIGIN_BRANCH"
 }
 
-do_bg()
-{
-        log="$CMD_DIR/$1.log"
-
-        echo "Start task $1 (log=$log)"
-        $* > "$log" 2>&1 &
-}
-
 get_version()
 {
         . ${CMD_DIR}/version
@@ -1450,11 +1306,6 @@ get_version()
         fi
 
         XENCLIENT_TOOLS="$XC_TOOLS_MAJOR.$XC_TOOLS_MINOR.$XC_TOOLS_MICRO.$XC_TOOLS_BUILD"
-}
-
-do_rmoutput()
-{
-    sudo rm -rf "$OUTPUT_DIR/$NAME"
 }
 
 do_build()
@@ -1491,58 +1342,53 @@ do_build()
                 IFS="$OLDIFS" ; export IFS
 
                 name="`echo "$i" | cut -d" " -f1`"
-                bg=""
-                [ "`expr "$i" : ".* &"`" != "0" ] && bg="do_bg"
                 case "$i" in
                         sync_cache_back*)
                                 do_sync_cache_back ;;
                         sync_cache*)
                                 do_sync_cache ;;
                         setupoe*)
-                                # NOTE: the ramdisk is off by default so normally
-                                # create_ramdisk is a no-op
-                                create_ramdisk "$path/oe" "$RAMDISK" && \
                                 do_oe_setup "$path" "$BRANCH"
                                 ;;
                         extra_pkgs*)
-                                do_oe_extra_pkgs "$path" ;; 
+                                do_oe_extra_pkgs "$path" ;;
                         dom0)
-                                $bg do_oe_dom0 "$path" ;;
+                                do_oe_dom0 "$path" ;;
                         dom0cp)
                                 do_oe_dom0_copy "$path" ;;
                         sysroot)
-                                $bg do_oe_sysroot "$path" ;;
+                                do_oe_sysroot "$path" ;;
                         sysrootcp)
                                 do_oe_sysroot_copy "$path" ;;
                         initramfs*)
-                                $bg do_oe "$path" "xenclient-dom0" "xenclient-initramfs-image" ;;
+                                do_oe "$path" "openxt-dom0" "openxt-initramfs-image" ;;
                         stubinitramfs)
-                                $bg do_oe "$path" "xenclient-stubdomain" "xenclient-stubdomain-initramfs-image" ;;
+                                do_oe "$path" "openxt-stubdomain" "openxt-stubdomain-initramfs-image" ;;
                         installer)
-                                $bg do_oe_installer "$path" ;;
+                                do_oe_installer "$path" ;;
                         installercp)
-                                do_oe_installer_copy "$path" "xenclient-dom0";;
+                                do_oe_installer_copy "$path" "openxt-dom0";;
                         installer2)
-                                $bg do_oe_installer_part2 "$path" ;;
+                                do_oe_installer_part2 "$path" ;;
                         installer2cp)
-                                do_oe_installer_part2_copy "$path" "xenclient-dom0";;
+                                do_oe_installer_part2_copy "$path" "openxt-dom0";;
                         license*)
-                                $bg do_oe_copy_licenses "$path" ;;
+                                do_oe_copy_licenses "$path" ;;
                         sourceinfo*)
-                                $bg do_oe_merge_src_info "$path" ;;
+                                do_oe_merge_src_info "$path" ;;
                         uivm)
-                                $bg do_oe_uivm "$path" ;;
+                                do_oe_uivm "$path" ;;
                         ndvm)
-                                $bg do_oe_ndvm "$path" ;;
+                                do_oe_ndvm "$path" ;;
                         nilfvm)
-                                $bg do_oe_nilfvm "$path" ;;
+                                do_oe_nilfvm "$path" ;;
                         vpnvm)
                                 # for retro-compatibility
-                                $bg do_oe_nilfvm "$path" ;;
+                                do_oe_nilfvm "$path" ;;
                         syncvm)
-                                $bg do_oe_syncvm "$path" ;;
+                                do_oe_syncvm "$path" ;;
                         syncui)
-                                $bg do_oe_syncui "$path" ;;
+                                do_oe_syncui "$path" ;;
                         uivmcp)
                                 do_oe_uivm_copy "$path" ;;
                         ndvmcp)
@@ -1554,11 +1400,9 @@ do_build()
                         syncuicp)
                                 do_oe_syncui_copy "$path" ;;
                         xctools*)
-                                $bg do_xctools "$path/xctools" ;;
+                                do_xctools "$path/xctools" ;;
                         debian)
-                                $bg do_debian_xctools "." "xc-tools-tmp/linux" ;;
-                        oldxctools*)
-                                $bg do_useexisting_xctools "$path/xctools" ;;
+                                do_debian_xctools "." "xc-tools-tmp/linux" ;;
                         debian_repo_xctools)
                                 do_xctools_debian_repo "$path" ;;
                         debian_repo_xctools_copy)
@@ -1573,14 +1417,8 @@ do_build()
                                 do_copy ;;
                         packages_tree*)
                                 do_oe_packages_tree "$path" ;;
-                        sim*)
-                                $bg do_sim "$path/xc-sim" ;;
-                        cleanup*)
-                                do_cleanup "$path" ;;
                         sdk)
                                 do_sdk ;;
-                        rmoutput*)
-                                do_rmoutput ;;
                         wait*)
                                 arg="`echo "$i" | cut -d" " -f2`"
                                 eval pid='$'"${arg}_pid"
@@ -1602,24 +1440,13 @@ do_build()
 
 usage()
 {
-        echo "$CMD: [-b branch (default: master)] [-i id] [-s steps] [-e ] [-N name] [-d rsync_destination] [-S]"
+  echo "$CMD: [-b branch (default: master)] [-i id] [-s steps] [-e ] [-c config_file] [-N name] [-d rsync_destination] [-S]"
 }
 
 sanitize_build_id() {
         echo "$1" | grep -q '^[0-9]\+$'
 }
 
-if [ "x$CONFIG" != "x" ] ; then
-        . "$CONFIG"
-else
-        if [ ! -f ".config" ] ; then
-                echo ".config file is missing"
-                exit 1
-        fi
-        . .config
-fi
-
-RAMDISK=0
 ORIGIN_BRANCH="$BRANCH"
 BUILD_SCRIPTS="`pwd`/`dirname $0`"
 
@@ -1628,19 +1455,32 @@ while [ "$#" -ne 0 ]; do
                 -b) ORIGIN_BRANCH="$2" ; BRANCH="$2" ; shift 2 ;;
                 -i) ID="$2"; sanitize_build_id "$ID" || die "Invalid build id: '$ID'"; shift 2 ;;
                 -s) STEPS="$2"; shift 2;;
-                -e) ENV=1; shift 1;;
                 -v) VERBOSE=1; shift 1;;
-                -m) RAMDISK=1; shift ;;
-                -M) RAMDISK=2; shift ;;
                 -N) ARGNAME="$2"; shift 2;;
                 -S) SOURCE=1; shift ;;
-                -d) BUILD_RSYNC_DESTINATION="$2"; shift 2;; 
-                -w) WIN_BUILD_OUTPUT="$2"; shift 2;; 
+                -d) BUILD_RSYNC_DESTINATION="$2"; shift 2;;
+                -c) CONFIG="$2"; shift 2;;
+                -w) WIN_BUILD_OUTPUT="$2"; shift 2;;
                 --) shift ; break ;;
                 *) usage ; exit 1;;
         esac
 done
 
 [ "x$DEBUG" != "x" ] && env >&2 && set -x
+
+if [ -n "$CONFIG" ]; then
+        if [ -r "$CONFIG" ]; then
+                . "$CONFIG"
+        else
+                echo "Config file does not exist or could not be read: ${CONFIG}"
+                exit 1
+        fi
+else
+        if [ ! -f ".config" ]; then
+                echo ".config file is missing"
+                exit 1
+        fi
+        . .config
+fi
 
 do_build
