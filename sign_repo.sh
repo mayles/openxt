@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Generates the XC-SIGNATURE metadata file for a XenClient repository.
+# Generates the XC-SIGNATURE metadata file for a OpenXT repository.
 
 parse_args()
 {
@@ -22,7 +22,7 @@ usage()
     cat <<EOF
 Usage: $(basename $0) CERTIFICATE PRIVATE_KEY REPOSITORY_DIR
 
-Signs a XenClient repository: uses the supplied certificate and private key
+Signs a OpenXT repository: uses the supplied certificate and private key
 to generate a signature of the XC-REPOSITORY file and writes it to the
 XC-SIGNATURE file.
 EOF

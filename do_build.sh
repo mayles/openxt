@@ -56,8 +56,8 @@ do_oe_setup()
         if [ ! -f "local.settings" ]; then
                 cat > local.settings <<EOF
 META_SELINUX_REPO=$META_SELINUX_REPO
-XENCLIENT_REPO=$OPENXT_GIT_PROTOCOL://$OPENXT_GIT_MIRROR/meta-openxt.git
-XENCLIENT_TAG="$BRANCH"
+OPENXT_REPO=$OPENXT_GIT_PROTOCOL://$OPENXT_GIT_MIRROR/meta-openxt.git
+OPENXT_TAG="$BRANCH"
 EOF
 
                 if [ "$OE_GIT_MIRROR" ] ; then
@@ -112,7 +112,7 @@ EOF
                 cat >> conf/local.conf <<EOF
 
 # Distribution feed
-XENCLIENT_PACKAGE_FEED_URI="${NETBOOT_HTTP_URL}/${ORIGIN_BRANCH}/${NAME}/packages/ipk"
+OPENXT_PACKAGE_FEED_URI="${NETBOOT_HTTP_URL}/${ORIGIN_BRANCH}/${NAME}/packages/ipk"
 
 # Local generated configuration for build $ID
 INHERIT += "$EXTRA_CLASSES"
@@ -131,17 +131,18 @@ OPENXT_TAG="$BRANCH"
 EOF
 
                 if [ "x$ID" != "x" ]; then
-                    echo "XENCLIENT_BUILD = \"$ID\"" >> conf/local.conf
+                    echo "OPENXT_BUILD = \"$ID\"" >> conf/local.conf
                 else
-                    echo "XENCLIENT_BUILD = \"$NAME\"" >> conf/local.conf
+                    echo "OPENXT_BUILD = \"$NAME\"" >> conf/local.conf
                 fi
 
                 cat >> conf/local.conf <<EOF
-XENCLIENT_BUILD_DATE = "`date +'%T %D'`"
-XENCLIENT_BUILD_BRANCH = "${ORIGIN_BRANCH}"
-XENCLIENT_VERSION = "$VERSION"
-XENCLIENT_RELEASE = "$RELEASE"
-XENCLIENT_TOOLS = "$XENCLIENT_TOOLS"
+OPENXT_PRODUCT = "OpenXT"
+OPENXT_BUILD_DATE = "`date +'%T %D'`"
+OPENXT_BUILD_BRANCH = "${ORIGIN_BRANCH}"
+OPENXT_VERSION = "$VERSION"
+OPENXT_RELEASE = "$RELEASE"
+OPENXT_TOOLS = "$OPENXT_TOOLS"
 
 # dir for generated deb packages
 XCT_DEB_PKGS_DIR := "${OE_BUILD_CACHE}/xct_deb_packages"
@@ -165,8 +166,8 @@ EOF
                 then
                     cat >> conf/local.conf <<EOF
 
-XENCLIENT_BUILD_SRC_PACKAGES = "1"
-XENCLIENT_COLLECT_SRC_INFO = "1"
+OPENXT_BUILD_SRC_PACKAGES = "1"
+OPENXT_COLLECT_SRC_INFO = "1"
 EOF
                 fi
                 if [ "x$FREEZE_URIS" = "xyes" ]
@@ -687,7 +688,7 @@ set +o pipefail #fragile part
             cat <<EOF
 xc:main
 pack:Base Pack
-product:XenClient
+product:${OPENXT_PRODUCT}
 build:${ID}
 version:${VERSION}
 release:${RELEASE}
@@ -1115,7 +1116,7 @@ do_debian_xctools()
     echo $debdir
 
     # some day somebody will refactor this... or maybe not.
-    export BUILD_SCRIPTS OPENXT_GIT_MIRROR BRANCH ALLOW_SWITCH_BRANCH_FAIL VERBOSE XENCLIENT_TOOLS XEN_VERSION_BRANCH OPENXT_GIT_PROTOCOL
+    export BUILD_SCRIPTS OPENXT_GIT_MIRROR BRANCH ALLOW_SWITCH_BRANCH_FAIL VERBOSE OPENXT_TOOLS XEN_VERSION_BRANCH OPENXT_GIT_PROTOCOL
     export XEN_VERSION XEN_SRC_URI
 
     # add linux xctools artifacts
@@ -1305,7 +1306,7 @@ get_version()
             fi
         fi
 
-        XENCLIENT_TOOLS="$XC_TOOLS_MAJOR.$XC_TOOLS_MINOR.$XC_TOOLS_MICRO.$XC_TOOLS_BUILD"
+        OPENXT_TOOLS="$XC_TOOLS_MAJOR.$XC_TOOLS_MINOR.$XC_TOOLS_MICRO.$XC_TOOLS_BUILD"
 }
 
 do_build()

@@ -54,19 +54,19 @@ process_git_repo() {
 	fi
 }
 
-OE_XENCLIENT_DIR=`pwd`
-REPOS=$OE_XENCLIENT_DIR/repos
-OE_PARENT_DIR=$(dirname $OE_XENCLIENT_DIR)
+OE_OPENXT_DIR=`pwd`
+REPOS=$OE_OPENXT_DIR/repos
+OE_PARENT_DIR=$(dirname $OE_OPENXT_DIR)
 
 # Load our config
 [ -f "$OE_PARENT_DIR/.config" ] && . "$OE_PARENT_DIR/.config"
 
-[ -f "$OE_XENCLIENT_DIR/local.settings" ] && . "$OE_XENCLIENT_DIR/local.settings"
+[ -f "$OE_OPENXT_DIR/local.settings" ] && . "$OE_OPENXT_DIR/local.settings"
 
 mkdir -p $REPOS || die "Could not create local build dir"
 
 # Pull down the OpenXT repos
-process_git_repo $REPOS/meta-openxt $XENCLIENT_REPO $XENCLIENT_TAG
+process_git_repo $REPOS/meta-openxt $OPENXT_REPO $OPENXT_TAG
 process_git_repo $REPOS/bitbake $BITBAKE_REPO $BB_BRANCH
 process_git_repo $REPOS/openembedded-core $OE_CORE_REPO $OE_BRANCH
 process_git_repo $REPOS/meta-openembedded $META_OE_REPO $OE_BRANCH
@@ -81,21 +81,21 @@ else
 	process_git_repo $REPOS/meta-selinux $META_SELINUX_REPO $OE_BRANCH
 fi
 
-if [ ! -e $OE_XENCLIENT_DIR/conf/local.conf ]; then
-  ln -s $OE_XENCLIENT_DIR/conf/local.conf-dist \
-      $OE_XENCLIENT_DIR/conf/local.conf
+if [ ! -e $OE_OPENXT_DIR/conf/local.conf ]; then
+  ln -s $OE_OPENXT_DIR/conf/local.conf-dist \
+      $OE_OPENXT_DIR/conf/local.conf
 fi
 
-BBPATH=$OE_XENCLIENT_DIR/oe/xenclient:$REPOS/openembedded:$OE_XENCLIENT_DIR/oe-addons
+BBPATH=$OE_OPENXT_DIR/oe/openxt:$REPOS/openembedded:$OE_OPENXT_DIR/oe-addons
 if [ ! -z "$EXTRA_DIR" ]; then
   BBPATH=$REPOS/$EXTRA_DIR:$BBPATH
 fi
 
 cat > oeenv <<EOF 
-OE_XENCLIENT_DIR=$OE_XENCLIENT_DIR
-PATH=$OE_XENCLIENT_DIR/repos/bitbake/bin:\$PATH
+OE_OPENXT_DIR=$OE_OPENXT_DIR
+PATH=$OE_OPENXT_DIR/repos/bitbake/bin:\$PATH
 BBPATH=$BBPATH
-BB_ENV_EXTRAWHITE="OE_XENCLIENT_DIR MACHINE GIT_AUTHOR_NAME EMAIL"
+BB_ENV_EXTRAWHITE="OE_OPENXT_DIR MACHINE GIT_AUTHOR_NAME EMAIL"
 
-export OE_XENCLIENT_DIR PATH BBPATH BB_ENV_EXTRAWHITE
+export OE_OPENXT_DIR PATH BBPATH BB_ENV_EXTRAWHITE
 EOF

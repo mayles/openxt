@@ -20,7 +20,7 @@
 set -e
 
 # This script sets up a build environment for building
-# XenClient using OpenEmbedded.
+# OpenXT using OpenEmbedded.
 
 # Usage: ./setup_build
 
@@ -89,16 +89,16 @@ getgit() {
     mv "$1.tmp" "$1"
 }
 
-OE_XENCLIENT_DIR=`pwd`
-export OE_XENCLIENT_DIR
+OE_OPENXT_DIR=`pwd`
+export OE_OPENXT_DIR
 
-[ -f "$OE_XENCLIENT_DIR/local.settings" ] && . "$OE_XENCLIENT_DIR/local.settings"
+[ -f "$OE_OPENXT_DIR/local.settings" ] && . "$OE_OPENXT_DIR/local.settings"
 
-REPOS=$OE_XENCLIENT_DIR/repos
+REPOS=$OE_OPENXT_DIR/repos
 if [ "$1" != "env" ]; then
   mkdir -p $REPOS || die "Could not create local build dir"
 
-  getgit $REPOS/meta-openxt $XENCLIENT_REPO $XENCLIENT_TAG
+  getgit $REPOS/meta-openxt $OPENXT_REPO $OPENXT_TAG
   getgit $REPOS/bitbake $BITBAKE_REPO $BITBAKE_TAG
   for p in `pwd`/repos/meta-openxt/patches/bitbake/*.patch; do
       if [ ! -f "$p.APPLIED" ]; then
@@ -115,18 +115,18 @@ if [ "$1" != "env" ]; then
   getgit $REPOS/meta-selinux $META_SELINUX_REPO $META_SELINUX_TAG
 fi
 
-if [ ! -e $OE_XENCLIENT_DIR/conf/local.conf ]; then
-  ln -s $OE_XENCLIENT_DIR/conf/local.conf-dist \
-      $OE_XENCLIENT_DIR/conf/local.conf
+if [ ! -e $OE_OPENXT_DIR/conf/local.conf ]; then
+  ln -s $OE_OPENXT_DIR/conf/local.conf-dist \
+      $OE_OPENXT_DIR/conf/local.conf
 fi
 
-BBPATH=$OE_XENCLIENT_DIR/oe/xenclient:$REPOS/openembedded:$OE_XENCLIENT_DIR/oe-addons
+BBPATH=$OE_OPENXT_DIR/oe/openxt:$REPOS/openembedded:$OE_OPENXT_DIR/oe-addons
 
 cat > oeenv <<EOF 
-OE_XENCLIENT_DIR=$OE_XENCLIENT_DIR
-PATH=$OE_XENCLIENT_DIR/repos/bitbake/bin:\$PATH
+OE_OPENXT_DIR=$OE_OPENXT_DIR
+PATH=$OE_OPENXT_DIR/repos/bitbake/bin:\$PATH
 BBPATH=$BBPATH
-BB_ENV_EXTRAWHITE="OE_XENCLIENT_DIR MACHINE GIT_AUTHOR_NAME EMAIL"
+BB_ENV_EXTRAWHITE="OE_OPENXT_DIR MACHINE GIT_AUTHOR_NAME EMAIL"
 
-export OE_XENCLIENT_DIR PATH BBPATH BB_ENV_EXTRAWHITE
+export OE_OPENXT_DIR PATH BBPATH BB_ENV_EXTRAWHITE
 EOF

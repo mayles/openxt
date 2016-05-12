@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Generates a XenClient installer iso image.
+# Generates an OpenXT installer iso image.
 
 usage()
 {
@@ -8,7 +8,7 @@ usage()
 Usage: $(basename $0) ISO_DIR ISO_IMAGE ISO_LABEL
   e.g. $(basename $0) installer installer.iso XC_installer
 
-Generates a XenClient installer iso image ISO_IMAGE from the contents of the
+Generates an OpenXT installer iso image ISO_IMAGE from the contents of the
 directory ISO_DIR.
 EOF
 }

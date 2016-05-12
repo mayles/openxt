@@ -2,7 +2,7 @@
 
 set -e
 
-REPO="/home/xc_source/git/xenclient"
+REPO="/home/xc_source/git/openxt"
 BRANCH="master"
 NEW_BRANCH=""
 

@@ -11,7 +11,7 @@ get_pci_class()
     cat lspci-mmnn.log  | grep "\[${class}\]" | sed -re 's/"//g'
 }
 
-get_xc_build_info()
+get_build_info()
 {
     local info="$1"
 
@@ -97,11 +97,11 @@ tar -xf vms.tar.bz2
 tar -xf syslog.tar.bz2
 
 format="%-40s %s\n"
-printf "$format" "XenClient build" "`get_xc_build_info 'build'`"
-printf "$format" "XenClient build date" "`get_xc_build_info 'build_date'`"
-printf "$format" "XenClient build branch" "`get_xc_build_info 'build_branch'`"
-printf "$format" "XenClient build tools" "`get_xc_build_info 'tools'`"
-printf "$format" "XenClient release" "`get_xc_build_info 'release'`"
+printf "$format" "OpenXT build" "`get_build_info 'build'`"
+printf "$format" "OpenXT build date" "`get_build_info 'build_date'`"
+printf "$format" "OpenXT build branch" "`get_build_info 'build_branch'`"
+printf "$format" "OpenXT build tools" "`get_build_info 'tools'`"
+printf "$format" "OpenXT release" "`get_build_info 'release'`"
 
 echo ""
 printf "$format" "Asset" "`get_asset`"
